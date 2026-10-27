@@ -1,0 +1,12 @@
+[
+  { "speaker": "male_host", "line": "Goooood morning, Night City! You're locked into the Morning Broadcast, brought to you - as always - by your friends at Arasaka. Everything is fine, citizen." },
+  { "speaker": "female_host", "line": "'Fine' is doing a lot of heavy lifting this morning, choom. The newsfeed flatlined overnight, so you're getting the two of us, raw and uncut, no corpo teleprompter." },
+  { "speaker": "male_host", "line": "Which the legal department assures me is a feature, not a bug. Let's talk markets: Arasaka's up, Militech's up, and somehow Petrochem is up despite a refinery 'incident' in Santo Domingo." },
+  { "speaker": "female_host", "line": "An 'incident.' That's the word for it now. Three blocks of glow-in-the-dark and we call it a rounding error. Buy the dip, edgerunners." },
+  { "speaker": "male_host", "line": "On the chrome beat, ripperdocs in Watson report brisk business after last night's gang dust-up. Stay safe out there, and remember - this segment is sponsored by Trauma Team International. We're already on our way." },
+  { "speaker": "female_host", "line": "They're on their way to the people with platinum coverage. The rest of you gonks get a sympathy ping. Weather's next: hazy, acidic, a forty percent chance of regret." },
+  { "speaker": "male_host", "line": "Don't forget your rebreather, and tip your local fixer. Traffic's jammed on the Pacifica interchange thanks to what NCPD is calling 'a spirited community gathering.'" },
+  { "speaker": "female_host", "line": "A riot. It's a riot. But who am I to argue with a press release. That's all the chrome we've got this morning, Night City." },
+  { "speaker": "male_host", "line": "Stay preem, stay insured, and stay tuned. We'll be back tomorrow - assuming the grid holds and the lawyers don't." },
+  { "speaker": "female_host", "line": "Big assumptions. Catch you on the flip side, choombas. Don't flatline before the afternoon show." }
+]

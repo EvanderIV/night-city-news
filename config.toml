@@ -1,0 +1,223 @@
+# =============================================================================
+# Night City Morning Broadcast - configuration
+# =============================================================================
+# Every field used by the pipeline lives here. Edit values, not code.
+# Strings must be quoted. Booleans are lowercase true/false.
+# =============================================================================
+
+[mode]
+# Which content engine drives the broadcast.
+#   "simulation" -> generate fake Night City stats (stocks, crime, weather...)
+#   "babylon"    -> scrape Babylon Bee headlines and reframe them for 2077
+content_source = "babylon"
+
+[schedule]
+# Informational only - the actual scheduling is done by cron (see README).
+# These are documented here so the README crontab and config stay in sync.
+generate_time = "02:00"   # when the generation pipeline should run
+# When the finished broadcast actually airs. The script writer reads this so any
+# on-air time reference ("good morning, it's 8:40...") matches reality. Keep it
+# in sync with your playback cron.
+playback_time = "08:40"   # when the finished broadcast should play
+
+[llm]
+# Large language model used to write the broadcast script.
+#   "anthropic" -> Claude API (separate paid Developer Platform billing; NOT
+#                  covered by a Claude.ai Pro/Max subscription)
+#   "ollama"    -> a local model via the Ollama server (free, runs on this PC)
+provider = "ollama"
+# For provider="anthropic": a Claude model id (e.g. "claude-opus-4-8").
+# For provider="ollama": an Ollama model tag (run `ollama pull <tag>` first).
+# 14B at Q3_K_S: measured ~7.8GB loaded at num_ctx=6144 (fits a ~9GB free
+# budget with headroom; unloads after each call via keep_alive). Chosen over the
+# 7B because an A/B showed it's noticeably sharper (wit, comedic arc, instruction
+# following). Tighter RAM? -> qwen2.5:7b-instruct-q6_K (~6.4GB). q3_K_M is ~7.8GB
+# weights / ~8.4GB loaded - too tight unless you have plenty of free RAM.
+model = "qwen2.5:14b-instruct-q3_K_S"
+api_key = ""                  # anthropic only; blank reads ANTHROPIC_API_KEY from env
+ollama_host = "http://localhost:11434"
+
+# --- Quality vs time (trade time for quality - ideal for an overnight job) ---
+# Generate this many independent draft scripts; an LLM judge picks the best.
+candidates = 3
+# Critique-and-rewrite passes applied to each draft before judging. 0 = off.
+refine_passes = 2
+# Rough call budget per run = candidates * (1 + refine_passes) + 1 judge.
+# At 3 / 2 that's ~10 LLM calls; on a CPU 14B that's well within a 20h window.
+
+# --- Ollama tuning (provider = "ollama") ---
+# num_ctx drives KV-cache RAM on top of the weights. 6144 keeps the 14B-Q3
+# comfortably under ~7GB while still holding the prompt + a full script.
+ollama_num_ctx = 6144
+ollama_num_predict = 3000     # max output tokens for the script (a full script fits)
+ollama_temperature = 0.95     # a touch more variety across the N candidates
+ollama_timeout = 1800         # seconds; CPU generation of a 14B is slow
+ollama_keep_alive = 0         # unload the model from RAM after each call
+
+[weather]
+# Real commute weather woven into the broadcast (Open-Meteo - free, no API key).
+# Reports the morning and evening commute windows for your location.
+enabled = true
+location = "Beavercreek, Ohio"
+latitude = 39.7092
+longitude = -84.0633
+timezone = "America/New_York"
+morning_hour = 9          # commute out (24h local time)
+evening_hour = 17         # commute home (24h local time)
+
+[tts]
+# Text-to-speech engine.
+#   "xtts"       -> Coqui XTTS v2, clones voices from your MP3s (local, free)
+#   "piper"      -> Piper pre-trained voices (fast, no cloning)
+#   "elevenlabs" -> ElevenLabs cloud cloning (needs api key + credits)
+engine = "chatterbox"         # "xtts", "piper", "elevenlabs", or "chatterbox"
+elevenlabs_api_key = ""       # only used when engine = "elevenlabs"
+
+# Auto-populated by `python main.py --setup`. For xtts these become paths to
+# saved speaker embeddings; for elevenlabs they become ElevenLabs voice ids;
+# for piper they are voice model names.
+male_voice_id = 'C:\Users\evanm\Documents\night-city-news\voice\embeddings\male_host_reference.wav'
+female_voice_id = 'C:\Users\evanm\Documents\night-city-news\voice\embeddings\female_host_reference.wav'
+
+# Piper-only: pre-trained ONNX voice model names (downloaded by Piper).
+piper_male_model = "en_US-ryan-high"
+piper_female_model = "en_US-amy-medium"
+
+[city]
+# Flavour settings woven into the simulation and the script prompt.
+name = "Night City"
+year = 2077
+factions = ["Arasaka", "Militech", "Maelstrom", "Valentinos", "6th Street"]
+
+[audio]
+background_volume = 0.15   # 0.0 (silent) to 1.0 (as loud as the voices)
+radio_filter = true        # apply the lo-fi radio EQ + compression chain
+output_format = "mp3"      # final container format ("mp3" or "wav")
+
+# --- Intro music bed (audio/assets/background/) ---
+# A bed is NOT looped: it plays under the opening (intro/hype) lines, then fades
+# out over the next few seconds once the intro sequence ends.
+intro_bed_volume = 0.18    # bed level under the intro (0-1, relative to voices)
+intro_bed_fade_ms = 5000   # fade the bed out over this long AFTER the intro ends
+intro_bed_min_ms = 8000    # keep the bed at full level for at least this long, so
+                           # it covers the open even if the lead-in line isn't tagged
+
+# --- Outro jingle (audio/assets/jingles/<FM>/ + .../prejingle/) ---
+# Pick a random FM frequency folder (fair regardless of how many jingles each
+# holds), then a random jingle from it. A random prejingle sting plays first;
+# the jingle then starts this many ms after the prejingle BEGINS, so the two
+# overlap (the prejingle is longer than this gap).
+prejingle_gap_ms = 1000    # jingle start offset, measured from the prejingle start
+
+# --- Topic-switch swoosh (audio/assets/transitions/) ---
+swoosh_gain_db = -2.0      # swoosh level relative to the voices (dB)
+max_swooshes = 8           # safety cap on transition stings per broadcast
+swoosh_min_gap_ms = 6000   # min spacing so one pivot can't fire two swooshes
+
+[video]
+# High-fidelity TV/video version (MP4). Run with `python main.py --video`, or set
+# enabled=true to also produce it on every run. The video audio is CLEAN (no radio
+# grain) with a slight bass boost; visuals are a news-desk composite: host footage
+# + an over-the-shoulder story thumbnail + a lower-third name bar.
+enabled = false
+width = 1920
+height = 1080
+fps = 30
+crf = 20                  # x264 quality (lower = better/larger); 18-23 typical
+preset = "veryfast"       # x264 speed/size tradeoff ("medium"/"slow" = smaller files)
+bass_boost_db = 3.0       # slight low-shelf lift for the video mix
+# On-screen names (lower third). Real host footage / sponsor cards go in
+# video/assets/hosts/ and video/assets/sponsors/; placeholders are auto-generated.
+male_host_name = "Stanley"
+female_host_name = "Gillean"
+show_name = "Morning Broadcast"
+
+[playback]
+# How the finished broadcast is sent to the speakers.
+#   "aplay"    -> Linux ALSA (WAV)
+#   "mpg123"   -> cross-platform MP3 CLI player
+#   "pipewire" -> PipeWire / PulseAudio via paplay
+#   "sonos"    -> stream to a Sonos room via the soco library
+method = "mpg123"
+sonos_room = ""            # required only when method = "sonos", e.g. "Kitchen"
+volume = 80                # 0-100 (best-effort; not all backends honor it)
+
+[voices]
+# Registry of additional cloned voices (Chatterbox reference WAVs, ~120s of clips
+# each, built from voice/training_data/<name>/). The active anchors are still
+# [chatterbox] male_reference / female_reference; these are extra characters,
+# cloned and ready to wire into broadcasts later. To improve a reference, drop
+# hand-picked clean clips in voice/training_data/<name>/curated/ and rebuild via
+#   python voice/cloner.py            (or the build snippet used to create these)
+johnny = "voice/embeddings/johnny_reference.wav"
+judy   = "voice/embeddings/judy_reference.wav"
+jackie = "voice/embeddings/jackie_reference.wav"
+wakako = "voice/embeddings/wakako_reference.wav"
+skye   = "voice/embeddings/skye_reference.wav"
+# Per-speaker preset variant: a line tagged "preset": "whisper" on speaker "skye"
+# uses this whispered reference (registry key "<speaker>_<preset>").
+skye_whisper = "voice/embeddings/skye_whisper_reference.wav"
+
+# =============================================================================
+# Chatterbox engine ([tts].engine = "chatterbox")
+# =============================================================================
+# Chatterbox runs OUT OF PROCESS in its own venv (.venv-chatterbox) because its
+# torch/transformers pins conflict with the XTTS stack. The synthesizer shells
+# out to voice/chatterbox_synth.py. Paths are relative to the project root; use
+# forward slashes.
+[chatterbox]
+venv_python = ".venv-chatterbox/Scripts/python.exe"
+model_dir = "models/chatterbox"
+# Compute device: "auto" uses an NVIDIA GPU (CUDA) if present, else Apple MPS,
+# else CPU - so the GPU dev box accelerates while the CPU-only server still works.
+# Force with "cuda" / "cpu". GPU needs a CUDA torch build in .venv-chatterbox
+# (pip install --index-url https://download.pytorch.org/whl/cu124 torch torchaudio).
+device = "auto"
+
+# Default ("normal" / narrative banter) speaker references.
+male_reference = "voice/embeddings/male_host_reference.wav"
+female_reference = "voice/embeddings/female_host_reference.wav"
+
+# Default generation settings used when a line has no preset.
+exaggeration = 0.5
+cfg_weight = 0.5
+temperature = 0.8
+repetition_penalty = 1.2
+min_p = 0.05
+top_p = 1.0
+
+# --- Delivery presets (per-line overrides; see [chatterbox.presets.*]) -------
+# A line in the script may carry an optional "preset" field naming one of these.
+# Lines with no preset use the defaults above.
+
+# The male host's signature over-the-top open. Uses his DRAMATIC reference
+# (built from the q0/q1 game clips) + cranked settings. A seed is picked at
+# random from the pool each run, so "Good morning, Night City!" varies day to
+# day while staying within the set of vetted-good takes (8 is the favourite).
+[chatterbox.presets.intro]
+reference = "voice/embeddings/male_dramatic_reference.wav"
+# Greeting text is NOT forced here - it's mode-specific and comes from the script
+# writer's prompt ("Good morning, Night City!" for simulation, "Good morning,
+# America!" for Babylon). The vetted seed pool still locks the delivery take.
+seeds = [8, 2, 4, 5, 7]
+exaggeration = 1.2
+cfg_weight = 0.3
+temperature = 0.6
+
+# The same bright/loud male voice as the intro, but for the high-energy "big
+# deal" opening lead-in lines (keeps each line's OWN text - no forced greeting).
+# Use only for the top-of-show hype; everything from the actual news onward
+# (crime stats, weather, traffic, stocks, sponsors) uses the normal voices.
+[chatterbox.presets.hype]
+reference = "voice/embeddings/male_dramatic_reference.wav"
+exaggeration = 1.2
+cfg_weight = 0.3
+temperature = 0.6
+
+# Soft, breathy delivery. The whisper itself comes from the per-speaker whisper
+# REFERENCE (e.g. [voices].skye_whisper); these settings just keep it calm/low.
+# No reference here on purpose, so each speaker's own *_whisper reference is used.
+[chatterbox.presets.whisper]
+exaggeration = 0.3
+cfg_weight = 0.5
+temperature = 0.6

@@ -1,0 +1,38 @@
+# Generated output
+output/
+
+# Logs
+logs/
+*.log
+
+# Voice training data and cloned embeddings (user-provided / generated)
+voice/training_data/male_host/*
+voice/training_data/female_host/*
+!voice/training_data/male_host/README.md
+!voice/training_data/female_host/README.md
+voice/embeddings/
+
+# Audio assets are user-provided; keep the folder READMEs only
+audio/assets/background/*
+audio/assets/jingles/*
+!audio/assets/background/README.md
+!audio/assets/jingles/README.md
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+.venv-*/
+venv/
+env/
+.eggs/
+
+# OS / editor cruft
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Downloaded model weights
+models/

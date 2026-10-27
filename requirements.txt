@@ -1,0 +1,49 @@
+# Night City Morning Broadcast - Python dependencies
+# Python 3.11+ required (uses built-in tomllib). Verified on CPython 3.13.
+#
+# Install with:  pip install -r requirements.txt
+# For a byte-for-byte reproduction of the tested environment, use the pinned
+# requirements.lock.txt instead (pip install -r requirements.lock.txt).
+#
+# NOTE on XTTS: The original Coqui "TTS" package is archived and caps at
+# Python <3.12, so it CANNOT install on 3.12/3.13. We use the actively
+# maintained fork "coqui-tts", which is a drop-in replacement (same
+# `from TTS.api import TTS` import and the same XTTS v2 model). It pulls in a
+# large torch dependency; if you only use Piper or ElevenLabs you may comment
+# the coqui-tts / torch / torchcodec / transformers lines out.
+#
+# IMPORTANT (XTTS on Windows): torch 2.9+ does audio IO via torchcodec, which
+# needs FFmpeg *shared* libraries (av*.dll). A static ffmpeg.exe is NOT enough.
+# See the README "Voice Setup" / Troubleshooting for how to supply them.
+
+# --- Text to speech engines ---
+coqui-tts[codec]>=0.27.0    # Coqui XTTS v2 fork (voice cloning, primary engine)
+torch>=2.5                  # XTTS backend; install CPU build from the pytorch
+torchaudio>=2.5             #   CPU index for a smaller download (see README)
+transformers>=4.45,<5       # coqui-tts is incompatible with transformers 5.x
+elevenlabs>=1.0.0           # ElevenLabs cloning API (engine = "elevenlabs")
+# piper-tts is installed separately as a system binary; see README.
+
+# --- Audio handling ---
+pydub>=0.25.1            # Segment assembly / mixing (needs ffmpeg on PATH)
+ffmpeg-python>=0.2.0     # Programmatic ffmpeg filter chains
+numpy>=1.24.0            # Used by simulation drift + audio helpers
+
+# --- Content sourcing ---
+httpx>=0.27.0            # Babylon Bee fetching
+beautifulsoup4>=4.12.0   # HTML parsing for the scraper
+
+# --- Video presentation (python main.py --video) ---
+Pillow>=10.0.0           # Renders host/sponsor/lower-third cards (ffmpeg composites them)
+# ffmpeg (with libx264 + aac) must be on PATH for the video compositor.
+
+# --- LLM providers ---
+anthropic>=0.28.0        # Claude script generation (provider = "anthropic")
+# ollama is reached over its local HTTP API via httpx; no extra package needed.
+
+# --- Playback (optional) ---
+soco>=0.30.0             # Sonos playback (playback.method = "sonos")
+
+# --- Config parsing ---
+# tomllib ships with Python 3.11+. On 3.10 or older install the backport:
+tomli>=2.0.1 ; python_version < "3.11"
